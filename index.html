@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SC210504019 Counter Application</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px; margin: 5px; font-size: 16px; cursor: pointer; }
+        /* Sonuçların gösterileceği 'out' alanının stili */
+        #out { border: 1px solid #f3f1f0; padding: 10px; min-height: 50px; white-space: pre-wrap; background-color: #5e9f21; }
+    </style>
+</head>
+<body>
+
+    <h1>Counter Smart Contract Interface (SC210504019)</h1>
+
+    <button id="connect">Connect to Metamask</button>
+    <button id="read">Read Value</button>
+    <button id="increment">Increment Value</button>
+    <button id="decrement">Decrement Value</button>
+
+    <h3>Results:</h3>
+    <pre id="out"></pre>
+
+    <script>
+        // Sözleşmeye erişim için kullanılacak temel değişkenler
+        let provider, signer, contract;
+
+        // **KRİTİK BÖLÜM: BU DEĞERLERİ KENDİ REMIX ÇIKTINIZLA GÜNCELLEYİN** 
+        // Bu adres, sözleşmenizin Sepolia'da dağıtıldığı adrestir
+        const CONTRACT_ADDRESS = "0xE86CC9Ad00a26Ee9A3162C1566904d862A491a38"; 
+        
+        // Bu ABI, sözleşmenizin fonksiyonlarını tanımlar
+        const ABI = [
+	{
+		"inputs": [],
+		"name": "decrement",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "increment",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "counterValue",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+      
+        // **KRİTİK BÖLÜM SONU**
+
+        // Konsol çıktısı için yardımcı fonksiyon
+        function log(m) {
+            document.getElementById("out").textContent += m + "\n";
+        }
+
+        // 1. MetaMask'a Bağlanma Fonksiyonu
+        async function connect() {
+            if (!window.ethereum) {
+                log("Error: Metamask is required. Please install.");
+                return;
+            }
+
+            try {
+                // Sağlayıcıyı (provider) Metamask'ten alır
+                provider = new ethers.BrowserProvider(window.ethereum);
+                // Hesapları ister (Metamask penceresini tetikler)
+                await provider.send("eth_requestAccounts", []);
+                // İşlemleri imzalayacak olan cüzdanı (signer) alır
+                signer = await provider.getSigner();
+
+                // Sözleşme nesnesini oluşturur (etkileşim için gerekli)
+                contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+                const address = await signer.getAddress();
+                log(`Connected: ${address}`);
+            } catch (error) {
+                log(`Connection Error: ${error.message || error}`);
+            }
+        }
+
+        // 2. Sayaç Değerini Okuma Fonksiyonu
+        async function read() {
+            if (!contract) {
+                log("Error: Connect to Metamask first.");
+                return;
+            }
+
+            try {
+                // Sözleşmeden counterValue'yu okur (gas tüketmez)
+                const v = await contract.counterValue();
+                log(`Current Value: ${v.toString()}`);
+            } catch (error) {
+                log(`Read Error: ${error.message || error}`);
+            }
+        }
+
+        // 3. Sayaç Değerini Artırma Fonksiyonu
+        async function increment_func() {
+            if (!contract) {
+                log("Error: Connect to Metamask first.");
+                return;
+            }
+
+            try {
+                // Increment fonksiyonunu çağırır (Metamask onayı ister) 
+                const tx = await contract.increment();
+                log(`Sent (Increment): ${tx.hash}`);
+                // İşlemin blokzincirde onaylanmasını bekler
+                await tx.wait();
+                log("Confirmed.");
+            } catch (error) {
+                log(`Increment Error: ${error.message || error}`);
+            }
+        }
+
+        // 4. Sayaç Değerini Azaltma Fonksiyonu
+        async function decrement_func() {
+            if (!contract) {
+                log("Error: Connect to Metamask first.");
+                return;
+            }
+
+            try {
+                // Decrement fonksiyonunu çağırır (Metamask onayı ister)
+                const tx = await contract.decrement();
+                log(`Sent (Decrement): ${tx.hash}`);
+                // İşlemin blokzincirde onaylanmasını bekler
+                await tx.wait();
+                log("Confirmed.");
+            } catch (error) {
+                log(`Decrement Error: ${error.message || error}`);
+            }
+        }
+
+        // Butonları ilgili fonksiyonlara bağlama 
+        document.getElementById("connect").onclick = connect;
+        document.getElementById("read").onclick = read;
+        document.getElementById("increment").onclick = increment_func;
+        document.getElementById("decrement").onclick = decrement_func;
+        
+    </script>
+</body>
+</html>
